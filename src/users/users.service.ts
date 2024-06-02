@@ -13,7 +13,21 @@ export class UsersService {
   }
 
   async create(createUserDto: CreateUserDto) {
-    const result = await this.usersCollection.insertOne(createUserDto);
+
+    let pkUserId = new ObjectId();
+
+    let user = {
+      pkUserId: pkUserId,
+      strUserName: createUserDto.strUserName,
+      strEmail: createUserDto.strEmail,
+      strStatus: "N",
+      dateCreated: new Date(),
+      dateUpdated: null,
+      createdUser: pkUserId,
+      updatedUser: null
+    }
+
+    const result = await this.usersCollection.insertOne(user);
     return result;
   }
 
