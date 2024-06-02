@@ -106,6 +106,74 @@ export class AuthService {
     }
   }
 
+  async googleLogin(profile) {
+    try {
+
+      const existingUser = await this.usersCollection.findOne({
+        strEmail: profile.emails[0].value,
+      });
+
+      if (existingUser) {
+        const responseData = await this.createResponseData(existingUser);
+        return responseData;
+      } else {
+        const newUser = {
+          pkUserId: new ObjectId(),
+          strUserName: profile.displayName,
+          strEmail: profile.emails[0].value,
+          strPassword: '',
+          strStatus: 'N',
+          dateCreated: new Date(),
+          dateUpdated: null,
+          createdUser: null,
+          updatedUser: null,
+        };
+
+        const result = await this.usersCollection.insertOne(newUser);
+
+        if (result.insertedCount === 1) {
+          const responseData = await this.createResponseData(newUser);
+          return responseData;
+        } else {
+          return new ResponseData(
+            false,
+            'Failed to create user',
+            [],
+            HttpStatus.BAD_REQUEST,
+            0,
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error occurred:', error);
+      return new ResponseData(
+        false,
+        'Internal server error',
+        [],
+        HttpStatus.INTERNAL_SERVER_ERROR,
+        0,
+      );
+    }
+  }
+
+  private async createResponseData(user): Promise<ResponseData<any>> {
+    // Create JWT token
+    const token = await this.jwtSign(user.pkUserId.toString());
+    const responseData = {
+      pkUserId: user.pkUserId,
+      strUserName: user.strUserName,
+      strEmail: user.strEmail,
+      token: token,
+    };
+    return new ResponseData(
+      true,
+      'Data retrieved successfully',
+      [responseData],
+      HttpStatus.OK,
+      1,
+    );
+  }
+
   // create json web token
   private async jwtSign(pkUserId: string): Promise<string> {
     try {
