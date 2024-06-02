@@ -8,6 +8,8 @@ import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dto/login-user.dto';
 import { ConfigService } from '@nestjs/config';
 import * as jwt from 'jsonwebtoken';
+import * as EmailValidator from 'email-validator';
+
 
 @Injectable()
 export class AuthService {
@@ -21,43 +23,47 @@ export class AuthService {
   async create(createUserDto: CreateUserDto) {
     try {
 
-      let count = await this.usersCollection.countDocuments({ strEmail: createUserDto.strEmail, strStatus: "N" });
-      if (count == 0) {
+      if (EmailValidator.validate(createUserDto.strEmail)) {
+        let count = await this.usersCollection.countDocuments({ strEmail: createUserDto.strEmail, strStatus: "N" });
+        if (count == 0) {
 
-        let pkUserId = new ObjectId();
+          let pkUserId = new ObjectId();
 
-        let ecnPass = await encrypt(createUserDto.strPassword);
+          let ecnPass = await encrypt(createUserDto.strPassword);
 
-        let user = {
-          pkUserId: pkUserId,
-          strUserName: createUserDto.strUserName,
-          strEmail: createUserDto.strEmail,
-          strPassword: ecnPass,
-          strStatus: "N",
-          dateCreated: new Date(),
-          dateUpdated: null,
-          createdUser: pkUserId,
-          updatedUser: null
-        }
-
-        const result = await this.usersCollection.insertOne(user);
-        if (result) {
-
-          let result = {
-            pkUserId: user.pkUserId,
-            strUserName: user.strUserName,
-            strEmail: user.strEmail,
+          let user = {
+            pkUserId: pkUserId,
+            strUserName: createUserDto.strUserName,
+            strEmail: createUserDto.strEmail,
+            strPassword: ecnPass,
+            strStatus: "N",
+            dateCreated: new Date(),
+            dateUpdated: null,
+            createdUser: pkUserId,
+            updatedUser: null
           }
 
-          let token = await this.jwtSign(pkUserId.toString());
-          (result as any).token = token;
+          const result = await this.usersCollection.insertOne(user);
+          if (result) {
 
-          return new ResponseData(true, 'Data created successfully', [result], HttpStatus.OK, 0);
+            let result = {
+              pkUserId: user.pkUserId,
+              strUserName: user.strUserName,
+              strEmail: user.strEmail,
+            }
+
+            let token = await this.jwtSign(pkUserId.toString());
+            (result as any).token = token;
+
+            return new ResponseData(true, 'Data created successfully', [result], HttpStatus.OK, 0);
+          } else {
+            return new ResponseData(false, 'Failed to create', [], HttpStatus.BAD_REQUEST, 0);
+          }
         } else {
-          return new ResponseData(false, 'Failed to create', [], HttpStatus.BAD_REQUEST, 0);
+          return new ResponseData(false, 'E-mail already exists', [], HttpStatus.BAD_REQUEST, 0);
         }
       } else {
-        return new ResponseData(false, 'E-mail already exists', [], HttpStatus.BAD_REQUEST, 0);
+        return new ResponseData(false, 'Invalid E-mail. Please try with another E-mail', [], HttpStatus.BAD_REQUEST, 0);
       }
     } catch (e) {
       console.error('Error occurred:', e);
@@ -68,27 +74,31 @@ export class AuthService {
   async login(loginUserDto: LoginUserDto) {
     try {
 
-      let isUserExist = await this.usersCollection.find({ strEmail: loginUserDto.strEmail, strStatus: "N" }).toArray();
-      if (isUserExist.length == 1) {
+      if (EmailValidator.validate(loginUserDto.strEmail)) {
+        let isUserExist = await this.usersCollection.find({ strEmail: loginUserDto.strEmail, strStatus: "N" }).toArray();
+        if (isUserExist.length == 1) {
 
-        let comapre = await compare(isUserExist[0].strPassword, loginUserDto.strPassword);
-        if (comapre) {
+          let comapre = await compare(isUserExist[0].strPassword, loginUserDto.strPassword);
+          if (comapre) {
 
-          let result = {
-            pkUserId: isUserExist[0].pkUserId,
-            strUserName: isUserExist[0].strUserName,
-            strEmail: isUserExist[0].strEmail,
+            let result = {
+              pkUserId: isUserExist[0].pkUserId,
+              strUserName: isUserExist[0].strUserName,
+              strEmail: isUserExist[0].strEmail,
+            }
+
+            let token = await this.jwtSign(isUserExist[0].pkUserId.toString());
+            (result as any).token = token;
+
+            return new ResponseData(true, 'Data verified successfully', [result], HttpStatus.OK, 0);
+          } else {
+            return new ResponseData(false, 'Failed to verify. Incorrect password', [], HttpStatus.BAD_REQUEST, 0);
           }
-
-          let token = await this.jwtSign(isUserExist[0].pkUserId.toString());
-          (result as any).token = token;
-
-          return new ResponseData(true, 'Data verified successfully', [result], HttpStatus.OK, 0);
         } else {
-          return new ResponseData(false, 'Failed to verify. Incorrect password', [], HttpStatus.BAD_REQUEST, 0);
+          return new ResponseData(false, 'Account with this E-mail does not exists', [], HttpStatus.BAD_REQUEST, 0);
         }
       } else {
-        return new ResponseData(false, 'Account with this E-mail does not exists', [], HttpStatus.BAD_REQUEST, 0);
+        return new ResponseData(false, 'Invalid E-mail. Please try with another E-mail', [], HttpStatus.BAD_REQUEST, 0);
       }
     } catch (e) {
       console.error('Error occurred:', e);
