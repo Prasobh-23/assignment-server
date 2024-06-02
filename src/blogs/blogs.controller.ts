@@ -5,6 +5,7 @@ import { CreateBlogDto } from './dto/create-blog.dto';
 import { GetBlogDto } from './dto/get-blog.dto';
 import { ResponseData } from '../resdata/res';
 import { UpdateBlogDto } from './dto/update-blog.dto';
+import { JWTMiddleware } from 'src/middlewares/jwt.middleware';
 
 @Controller('blogs')
 export class BlogsController {

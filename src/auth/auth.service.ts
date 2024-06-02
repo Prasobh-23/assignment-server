@@ -43,6 +43,12 @@ export class AuthService {
         const result = await this.usersCollection.insertOne(user);
         if (result) {
 
+          let result = {
+            pkUserId: user.pkUserId,
+            strUserName: user.strUserName,
+            strEmail: user.strEmail,
+          }
+
           let token = await this.jwtSign(pkUserId.toString());
           (result as any).token = token;
 
