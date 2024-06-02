@@ -6,15 +6,17 @@ import { ResponseData } from 'src/resdata/res';
 import { HttpStatus } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { LoginUserDto } from './dto/login-user.dto';
+import { ConfigService } from '@nestjs/config';
+import * as jwt from 'jsonwebtoken';
 
 @Injectable()
 export class AuthService {
 
   private usersCollection;
 
-  constructor(@Inject('DATABASE_CONNECTION') private readonly db: Db) {
-    this.usersCollection = this.db.collection('users');
-  }
+  constructor(@Inject('DATABASE_CONNECTION') private readonly db: Db,
+    private readonly configService: ConfigService,
+  ) { this.usersCollection = this.db.collection('users'); }
 
   async create(createUserDto: CreateUserDto) {
     try {
@@ -40,6 +42,10 @@ export class AuthService {
 
         const result = await this.usersCollection.insertOne(user);
         if (result) {
+
+          let token = await this.jwtSign(pkUserId.toString());
+          (result as any).token = token;
+
           return new ResponseData(true, 'Data created successfully', [result], HttpStatus.OK, 0);
         } else {
           return new ResponseData(false, 'Failed to create', [], HttpStatus.BAD_REQUEST, 0);
@@ -77,7 +83,24 @@ export class AuthService {
     }
   }
 
+  // create json web token
+  private async jwtSign(pkUserId: string): Promise<string> {
+    try {
+
+      const maxAge = 3 * 24 * 60 * 60; //3days in seconds
+      return jwt.sign({ pkUserId }, this.configService.get<string>('JWT_SECRET'), {
+        expiresIn: maxAge
+      });
+
+    } catch (e) {
+      console.error('Error occurred:', e);
+      throw e;
+    }
+  }
+
 }
+
+/////////// auth helper functions///////////////////
 
 async function encrypt(strPassword: string): Promise<string> {
   try {
