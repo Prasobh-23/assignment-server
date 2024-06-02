@@ -68,7 +68,14 @@ export class AuthService {
         let comapre = await compare(isUserExist[0].strPassword, loginUserDto.strPassword);
         if (comapre) {
 
-          let result = isUserExist;
+          let result = {
+            pkUserId: isUserExist[0].pkUserId,
+            strUserName: isUserExist[0].strUserName,
+            strEmail: isUserExist[0].strEmail,
+          }
+
+          let token = await this.jwtSign(isUserExist[0].pkUserId.toString());
+          (result as any).token = token;
 
           return new ResponseData(true, 'Data verified successfully', [result], HttpStatus.OK, 0);
         } else {
