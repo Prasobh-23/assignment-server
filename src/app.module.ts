@@ -5,7 +5,8 @@ import { ConfigModule } from '@nestjs/config';
 import { AuthModule } from './auth/auth.module';
 import { MorganMiddleware } from './middlewares/morgan.middleware';
 import { BlogsModule } from './blogs/blogs.module';
-import { JWTMiddleware } from './middlewares/jwt.middleware'; // Import your JWT middleware
+import { JWTMiddleware } from './middlewares/jwt.middleware';
+import { CookieMiddleware } from './middlewares/cookie.middleware';
 
 @Module({
   imports: [ConfigModule.forRoot({
@@ -17,6 +18,10 @@ import { JWTMiddleware } from './middlewares/jwt.middleware'; // Import your JWT
 export class AppModule {
   configure(consumer: MiddlewareConsumer) {
     consumer
+      .apply(CookieMiddleware)
+      .forRoutes('*');
+      
+    consumer
       .apply(JWTMiddleware)
       .exclude(
         { path: 'users/registerUser', method: RequestMethod.POST },
@@ -27,6 +32,8 @@ export class AppModule {
     consumer
       .apply(MorganMiddleware)
       .forRoutes('*');
+
+    
   }
 }
 

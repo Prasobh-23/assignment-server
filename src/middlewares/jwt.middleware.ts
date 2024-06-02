@@ -2,11 +2,13 @@ import { Injectable, NestMiddleware, Inject } from '@nestjs/common';
 import * as jwt from 'jsonwebtoken';
 import { ConfigService } from '@nestjs/config';
 
+
 @Injectable()
 export class JWTMiddleware implements NestMiddleware {
     constructor(private readonly configService: ConfigService) { }
 
     use(req: any, res: any, next: () => void) {
+
         const token = req.cookies.authToken;
         if (token) {
             jwt.verify(token, this.configService.get<string>('JWT_SECRET'), (err, decodedToken) => {
