@@ -45,13 +45,47 @@ export class BlogsService {
         }
     }
 
-    async findAll(GetBlogDto: GetBlogDto): Promise<ResponseData<any>> {
+    async findAllByUser(GetBlogDto: GetBlogDto): Promise<ResponseData<any>> {
         try {
 
             let fkUserId = new ObjectId(GetBlogDto.fkUserId);
 
             let match = {
                 fkUserId: fkUserId,
+                strStatus: "N"
+            }
+
+            let count = await this.blogsCollection.countDocuments(match);
+            if (count > 0) {
+
+                let intSkipCount = parseInt(GetBlogDto.intSkipCount) || 0;
+                let intPageLimit = parseInt(GetBlogDto.intPageLimit) || count;
+
+                let project = {
+                    _id: 0,
+                }
+
+                let result = await this.blogsCollection.aggregate([
+                    { $match: match },
+                    { $project: project },
+                    { $sort: { dateCreated: -1 } },
+                    { $skip: intSkipCount },
+                    { $limit: intPageLimit }
+                ]).toArray();
+                return new ResponseData(true, 'Data fetched successfully', result, HttpStatus.OK, count);
+            } else {
+                return new ResponseData(true, 'No data found', [], HttpStatus.NOT_FOUND, count);
+            }
+        } catch (e) {
+            console.error('Error occurred:', e);
+            return new ResponseData(false, 'Internal server error', [], HttpStatus.INTERNAL_SERVER_ERROR, 0);
+        }
+    }
+
+    async findAll(GetBlogDto: GetBlogDto): Promise<ResponseData<any>> {
+        try {
+
+            let match = {
                 strStatus: "N"
             }
 

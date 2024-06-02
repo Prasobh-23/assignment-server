@@ -52,6 +52,27 @@ export class BlogsController {
         }
     }
 
+    @Get('getAllBlogsSingleUser')
+    async findAllByUser(@Query() getBlogDto: GetBlogDto, @Res() res: Response): Promise<void> {
+        try {
+            const responseData = await this.blogsService.findAllByUser(getBlogDto);
+            res.status(responseData.status).json(responseData);
+        } catch (error) {
+            if (error instanceof HttpException) {
+                const status = error.getStatus();
+                const response = error.getResponse();
+                res.status(status).json(response);
+            } else {
+                res.status(HttpStatus.INTERNAL_SERVER_ERROR).json({
+                    success: false,
+                    message: 'Internal server error',
+                    data: [],
+                    status: HttpStatus.INTERNAL_SERVER_ERROR
+                });
+            }
+        }
+    }
+
     @Get('getOneBlog')
     async findOne(@Query() getBlogDto: GetBlogDto, @Res() res: Response): Promise<void> {
         try {
